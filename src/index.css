@@ -1,0 +1,201 @@
+@import url("https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Hacker-style design system */
+
+@layer base {
+  :root {
+    /* Default variables (fallback) */
+    --background: 220 13% 8%;
+    --foreground: 150 60% 90%;
+    /* ... other defaults if needed, but we handle them in blocks below */
+  }
+
+  /* 1. MIDNIGHT (Zinc) - Default */
+  [data-theme="zinc"] {
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 6%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --radius: 0.5rem;
+  }
+
+  /* 2. OCEAN (Blue/Teal) */
+  [data-theme="ocean"] {
+    --background: 222 47% 11%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 13%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 13%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 199 89% 48%; /* Bright Sky Blue */
+    --primary-foreground: 222 47% 11%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 17%;
+    --muted-foreground: 215 20% 65%;
+    --accent: 217 32% 17%;
+    --accent-foreground: 210 40% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 199 89% 48%;
+  }
+
+  /* 3. SUNSET (Orange/Purple) */
+  [data-theme="sunset"] {
+    --background: 265 40% 10%; /* Deep Purple */
+    --foreground: 20 20% 98%;
+    --card: 265 40% 13%;
+    --card-foreground: 20 20% 98%;
+    --popover: 265 40% 13%;
+    --popover-foreground: 20 20% 98%;
+    --primary: 22 90% 55%; /* Vibrant Orange */
+    --primary-foreground: 265 40% 10%;
+    --secondary: 265 20% 18%;
+    --secondary-foreground: 20 20% 98%;
+    --muted: 265 20% 18%;
+    --muted-foreground: 270 10% 70%;
+    --accent: 265 20% 18%;
+    --accent-foreground: 20 20% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 20 20% 98%;
+    --border: 265 20% 18%;
+    --input: 265 20% 18%;
+    --ring: 22 90% 55%;
+  }
+
+  /* 4. HACKER (Matrix Green) */
+  [data-theme="hacker"] {
+    --background: 120 10% 5%; /* Almost Black */
+    --foreground: 120 70% 80%; /* Terminal Green Text */
+    --card: 120 10% 8%;
+    --card-foreground: 120 70% 80%;
+    --popover: 120 10% 8%;
+    --popover-foreground: 120 70% 80%;
+    --primary: 120 100% 40%; /* Bright Matrix Green */
+    --primary-foreground: 120 10% 5%;
+    --secondary: 120 20% 12%;
+    --secondary-foreground: 120 70% 80%;
+    --muted: 120 20% 12%;
+    --muted-foreground: 120 30% 50%;
+    --accent: 120 20% 12%;
+    --accent-foreground: 120 70% 80%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 120 70% 80%;
+    --border: 120 30% 20%;
+    --input: 120 30% 20%;
+    --ring: 120 100% 40%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+}
+
+@layer utilities {
+  .glow-input {
+    box-shadow: var(--glow-primary);
+  }
+
+  .glow-strong {
+    box-shadow: var(--glow-strong);
+  }
+}
+
+/* Typewriter animation */
+@keyframes typewriter {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
+@keyframes blink {
+  0%,
+  50% {
+    border-color: hsl(var(--primary));
+  }
+  51%,
+  100% {
+    border-color: transparent;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pulse-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px hsl(var(--primary) / 0.4);
+  }
+  50% {
+    box-shadow: 0 0 20px hsl(var(--primary) / 0.6);
+  }
+}
+
+@keyframes thinking {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.3s ease-out forwards;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+.thinking-dot {
+  animation: thinking 1.4s ease-in-out infinite;
+}
+
+.thinking-dot:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.thinking-dot:nth-child(3) {
+  animation-delay: 0.4s;
+}
