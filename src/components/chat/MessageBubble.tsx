@@ -1,91 +1,109 @@
 import { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { User, Bot, AlertCircle, Copy, Check } from "lucide-react";
-import { useEffect, useState } from "react";
+import { User, Bot, AlertCircle, Copy, Check, RotateCcw } from "lucide-react";
+import { useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
-import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
+import { oneDark } from "react-syntax-highlighter/dist/esm/styles/prism";
 
 interface MessageBubbleProps {
   message: Message;
+  index?: number;
+  isStreaming?: boolean;
 }
 
-export function MessageBubble({ message }: MessageBubbleProps) {
+export function MessageBubble({
+  message,
+  index = 0,
+  isStreaming = false,
+}: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isError = message.role === "error";
-  const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const onCopy = (code: string) => {
-    navigator.clipboard.writeText(code);
-    setCopiedCode(code);
-    setTimeout(() => setCopiedCode(null), 2000);
+  const handleCopy = (text: string, id: string) => {
+    navigator.clipboard.writeText(text);
+    setCopiedId(id);
+    setTimeout(() => setCopiedId(null), 2000);
   };
+
+  const formattedTime = useMemo(() => {
+    return new Date(message.timestamp).toLocaleTimeString([], {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  }, [message.timestamp]);
 
   return (
     <div
       className={cn(
-        "flex gap-3 animate-fade-in group",
+        "group flex gap-3 sm:gap-4 animate-message-pop",
         isUser ? "flex-row-reverse" : "flex-row",
       )}
+      style={{ animationDelay: `${Math.min(index * 30, 300)}ms` }}
     >
       {/* Avatar */}
       <div
         className={cn(
-          "flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center",
+          "flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl flex items-center justify-center transition-all duration-300",
           isUser
-            ? "bg-primary text-primary-foreground"
+            ? "bg-gradient-primary text-primary-foreground shadow-glow-subtle"
             : isError
-              ? "bg-destructive/20 text-destructive"
-              : "bg-secondary text-primary",
+              ? "bg-destructive/15 text-destructive border border-destructive/20"
+              : "glass-subtle text-primary",
         )}
       >
         {isUser ? (
-          <User className="h-4 w-4" />
+          <User className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
         ) : isError ? (
-          <AlertCircle className="h-4 w-4" />
+          <AlertCircle className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
         ) : (
-          <Bot className="h-4 w-4" />
+          <Bot className="h-4 w-4 sm:h-[18px] sm:w-[18px]" />
         )}
       </div>
 
       {/* Message Content */}
       <div
         className={cn(
-          "max-w-[85%] rounded-lg px-4 py-3 text-sm leading-relaxed overflow-hidden relative group/bubble",
+          "relative max-w-[85%] sm:max-w-[80%] rounded-2xl transition-all duration-300",
           isUser
-            ? "bg-primary text-primary-foreground"
+            ? "bg-gradient-primary text-primary-foreground px-4 sm:px-5 py-3 sm:py-3.5 shadow-glow-subtle"
             : isError
-              ? "bg-destructive/10 border border-destructive/30 text-destructive"
-              : "bg-secondary text-secondary-foreground",
+              ? "glass-subtle border border-destructive/20 text-destructive px-4 sm:px-5 py-3 sm:py-3.5"
+              : "glass-subtle px-4 sm:px-5 py-3 sm:py-4",
         )}
       >
+        {/* Copy button */}
         <button
-          onClick={() => {
-            navigator.clipboard.writeText(message.content);
-            setCopiedCode("MESSAGE_CONTENT"); // Reusing state key for simplicity or separate it
-            setTimeout(() => setCopiedCode(null), 2000);
-          }}
+          onClick={() => handleCopy(message.content, "msg-" + message.id)}
           className={cn(
-            "absolute top-2 right-2 p-1.5 rounded-md transition-all opacity-0 group-hover/bubble:opacity-100",
+            "absolute top-2.5 right-2.5 p-1.5 rounded-lg transition-all duration-300",
+            "opacity-0 group-hover:opacity-100 hover:scale-110 active:scale-95",
             isUser
-              ? "hover:bg-primary-foreground/10 text-primary-foreground/70 hover:text-primary-foreground"
-              : "hover:bg-background/50 text-muted-foreground hover:text-foreground",
+              ? "hover:bg-white/10 text-primary-foreground/60 hover:text-primary-foreground"
+              : "hover:bg-muted/50 text-muted-foreground hover:text-foreground",
           )}
           title="Copy message"
         >
-          {copiedCode === "MESSAGE_CONTENT" ? (
+          {copiedId === "msg-" + message.id ? (
             <Check className="h-3.5 w-3.5" />
           ) : (
             <Copy className="h-3.5 w-3.5" />
           )}
         </button>
 
+        {/* Markdown content */}
         <div
           className={cn(
-            "prose prose-sm dark:prose-invert max-w-none break-words pr-6", // Added pr-6 to prevent text overlap with button
-            isUser &&
-              "text-primary-foreground prose-headings:text-primary-foreground prose-p:text-primary-foreground prose-strong:text-primary-foreground prose-code:text-primary-foreground",
+            "prose prose-sm max-w-none break-words pr-6 leading-relaxed",
+            "prose-headings:font-semibold prose-headings:tracking-tight",
+            "prose-p:leading-relaxed prose-li:leading-relaxed",
+            "prose-code:font-mono prose-code:text-[0.9em]",
+            isUser
+              ? "text-primary-foreground prose-headings:text-primary-foreground prose-p:text-primary-foreground prose-strong:text-primary-foreground prose-a:text-primary-foreground/90"
+              : "prose-headings:text-foreground prose-p:text-foreground prose-strong:text-foreground prose-a:text-primary",
+            isStreaming && !isUser && "streaming-text",
           )}
         >
           <ReactMarkdown
@@ -99,41 +117,61 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 ...props
               }: React.ComponentPropsWithoutRef<"code"> & {
                 inline?: boolean;
-                node?: any;
+                node?: unknown;
               }) {
                 const match = /language-(\w+)/.exec(className || "");
                 const codeString = String(children).replace(/\n$/, "");
 
                 if (!inline && match) {
                   return (
-                    <div className="relative my-4 rounded-md overflow-hidden border border-border bg-zinc-950">
-                      <div className="flex items-center justify-between px-4 py-2 bg-zinc-900 border-b border-border/40">
-                        <span className="text-xs text-zinc-400 font-mono">
-                          {match[1]}
-                        </span>
+                    <div className="relative my-4 rounded-xl overflow-hidden border border-border/40 bg-[#1e1e1e]">
+                      {/* Code header */}
+                      <div className="flex items-center justify-between px-4 py-2.5 border-b border-border/30 bg-black/20">
+                        <div className="flex items-center gap-3">
+                          <div className="flex gap-1.5">
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#ff5f57]" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#febc2e]" />
+                            <div className="w-2.5 h-2.5 rounded-full bg-[#28c840]" />
+                          </div>
+                          <span className="text-xs text-muted-foreground/70 font-mono uppercase tracking-wide">
+                            {match[1]}
+                          </span>
+                        </div>
                         <button
-                          onClick={() => onCopy(codeString)}
-                          className="hover:bg-zinc-800 p-1.5 rounded-md transition-colors"
+                          onClick={() => handleCopy(codeString, codeString)}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-white/5 transition-all duration-200"
                           title="Copy code"
                         >
-                          {copiedCode === codeString ? (
-                            <Check className="h-3.5 w-3.5 text-green-500" />
+                          {copiedId === codeString ? (
+                            <>
+                              <Check className="h-3 w-3 text-emerald-400" />
+                              <span className="text-emerald-400">Copied</span>
+                            </>
                           ) : (
-                            <Copy className="h-3.5 w-3.5 text-zinc-400" />
+                            <>
+                              <Copy className="h-3 w-3" />
+                              <span>Copy</span>
+                            </>
                           )}
                         </button>
                       </div>
                       <SyntaxHighlighter
                         {...props}
-                        style={vscDarkPlus}
+                        style={oneDark}
                         language={match[1]}
                         PreTag="div"
                         customStyle={{
                           margin: 0,
                           borderRadius: 0,
-                          padding: "1rem",
-                          fontSize: "0.875rem",
+                          padding: "1.25rem",
+                          fontSize: "0.85rem",
+                          lineHeight: 1.6,
                           backgroundColor: "transparent",
+                        }}
+                        codeTagProps={{
+                          style: {
+                            fontFamily: "'JetBrains Mono', monospace",
+                          },
                         }}
                       >
                         {codeString}
@@ -144,7 +182,8 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 return (
                   <code
                     className={cn(
-                      "bg-black/10 dark:bg-white/10 px-1.5 py-0.5 rounded font-mono text-[0.9em]",
+                      "bg-muted/40 px-1.5 py-0.5 rounded-md font-mono text-[0.9em]",
+                      isUser && "bg-white/15",
                       className,
                     )}
                     {...props}
@@ -154,37 +193,102 @@ export function MessageBubble({ message }: MessageBubbleProps) {
                 );
               },
               p: ({ className, ...props }) => (
-                <p
-                  className={cn("mb-2 last:mb-0 leading-7", className)}
-                  {...props}
-                />
+                <p className={cn("mb-3 last:mb-0", className)} {...props} />
               ),
               ul: ({ className, ...props }) => (
                 <ul
-                  className={cn("my-4 ml-6 list-disc [&>li]:mt-2", className)}
+                  className={cn("my-3 ml-4 list-disc space-y-1.5", className)}
                   {...props}
                 />
               ),
               ol: ({ className, ...props }) => (
                 <ol
                   className={cn(
-                    "my-4 ml-6 list-decimal [&>li]:mt-2",
+                    "my-3 ml-4 list-decimal space-y-1.5",
                     className,
                   )}
                   {...props}
                 />
               ),
               li: ({ className, ...props }) => (
-                <li className={cn("leading-7", className)} {...props} />
+                <li className={cn(className)} {...props} />
               ),
               a: ({ className, ...props }) => (
                 <a
                   className={cn(
-                    "text-primary underline underline-offset-4 hover:text-primary/80 transition-colors",
+                    "underline underline-offset-4 decoration-primary/30 hover:decoration-primary transition-colors",
                     className,
                   )}
                   target="_blank"
                   rel="noopener noreferrer"
+                  {...props}
+                />
+              ),
+              h1: ({ className, ...props }) => (
+                <h1
+                  className={cn(
+                    "text-xl font-bold mb-3 mt-5 first:mt-0",
+                    className,
+                  )}
+                  {...props}
+                />
+              ),
+              h2: ({ className, ...props }) => (
+                <h2
+                  className={cn(
+                    "text-lg font-semibold mb-2.5 mt-4 first:mt-0",
+                    className,
+                  )}
+                  {...props}
+                />
+              ),
+              h3: ({ className, ...props }) => (
+                <h3
+                  className={cn(
+                    "text-base font-semibold mb-2 mt-3 first:mt-0",
+                    className,
+                  )}
+                  {...props}
+                />
+              ),
+              blockquote: ({ className, ...props }) => (
+                <blockquote
+                  className={cn(
+                    "border-l-2 border-primary/40 pl-4 italic my-3 text-muted-foreground",
+                    className,
+                  )}
+                  {...props}
+                />
+              ),
+              hr: ({ className, ...props }) => (
+                <hr
+                  className={cn("my-4 border-border/50", className)}
+                  {...props}
+                />
+              ),
+              table: ({ className, ...props }) => (
+                <div className="my-4 overflow-x-auto rounded-lg border border-border/40">
+                  <table
+                    className={cn("w-full text-sm", className)}
+                    {...props}
+                  />
+                </div>
+              ),
+              th: ({ className, ...props }) => (
+                <th
+                  className={cn(
+                    "px-3 py-2 text-left font-semibold bg-muted/30 border-b border-border/40",
+                    className,
+                  )}
+                  {...props}
+                />
+              ),
+              td: ({ className, ...props }) => (
+                <td
+                  className={cn(
+                    "px-3 py-2 border-b border-border/30",
+                    className,
+                  )}
                   {...props}
                 />
               ),
@@ -197,14 +301,13 @@ export function MessageBubble({ message }: MessageBubbleProps) {
         {/* Timestamp */}
         <div
           className={cn(
-            "mt-2 text-[10px] opacity-50 select-none",
-            isUser ? "text-right" : "text-left",
+            "mt-2 text-[10px] sm:text-[11px] select-none font-medium tracking-wide",
+            isUser
+              ? "text-right text-primary-foreground/50"
+              : "text-left text-muted-foreground/50",
           )}
         >
-          {new Date(message.timestamp).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-          })}
+          {formattedTime}
         </div>
       </div>
     </div>

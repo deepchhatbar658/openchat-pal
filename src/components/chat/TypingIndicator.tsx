@@ -1,19 +1,21 @@
-import { Bot } from 'lucide-react';
+import { Bot } from "lucide-react";
 
 export function TypingIndicator() {
   return (
-    <div className="flex gap-3 animate-fade-in">
-      <div className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary flex items-center justify-center">
-        <Bot className="h-4 w-4 text-primary" />
+    <div className="flex gap-3 sm:gap-4 animate-fade-in">
+      {/* Avatar */}
+      <div className="flex-shrink-0 w-8 h-8 sm:w-9 sm:h-9 rounded-xl glass-subtle flex items-center justify-center">
+        <Bot className="h-4 w-4 sm:h-[18px] sm:w-[18px] text-primary" />
       </div>
-      
-      <div className="bg-secondary rounded-lg px-4 py-3 flex items-center gap-1">
-        <span className="text-sm font-mono text-muted-foreground">AI is thinking</span>
-        <div className="flex gap-1 ml-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
-          <span className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
-          <span className="w-1.5 h-1.5 rounded-full bg-primary thinking-dot" />
+
+      {/* Thinking bubble */}
+      <div className="glass-subtle rounded-2xl px-5 py-4 flex items-center gap-3">
+        <div className="flex items-center gap-1.5">
+          <span className="w-2 h-2 rounded-full bg-gradient-primary thinking-dot" />
+          <span className="w-2 h-2 rounded-full bg-gradient-primary thinking-dot" />
+          <span className="w-2 h-2 rounded-full bg-gradient-primary thinking-dot" />
         </div>
+        <span className="text-sm text-muted-foreground ml-1">Thinking</span>
       </div>
     </div>
   );

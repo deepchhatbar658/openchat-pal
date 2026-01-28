@@ -79,11 +79,51 @@ export default {
   				to: {
   					height: '0'
   				}
+  			},
+  			'float': {
+  				'0%, 100%': { transform: 'translateY(0px)' },
+  				'50%': { transform: 'translateY(-10px)' }
+  			},
+  			'pulse-soft': {
+  				'0%, 100%': { opacity: '0.4' },
+  				'50%': { opacity: '0.8' }
+  			},
+  			'shimmer': {
+  				'0%': { backgroundPosition: '-200% 0' },
+  				'100%': { backgroundPosition: '200% 0' }
+  			},
+  			'slide-up': {
+  				'0%': { transform: 'translateY(20px)', opacity: '0' },
+  				'100%': { transform: 'translateY(0)', opacity: '1' }
+  			},
+  			'slide-in-right': {
+  				'0%': { transform: 'translateX(20px)', opacity: '0' },
+  				'100%': { transform: 'translateX(0)', opacity: '1' }
+  			},
+  			'fade-in': {
+  				'0%': { opacity: '0' },
+  				'100%': { opacity: '1' }
+  			},
+  			'scale-in': {
+  				'0%': { transform: 'scale(0.95)', opacity: '0' },
+  				'100%': { transform: 'scale(1)', opacity: '1' }
+  			},
+  			'glow-pulse': {
+  				'0%, 100%': { boxShadow: '0 0 20px hsl(var(--primary) / 0.3)' },
+  				'50%': { boxShadow: '0 0 40px hsl(var(--primary) / 0.6)' }
   			}
   		},
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out'
+  			'accordion-up': 'accordion-up 0.2s ease-out',
+  			'float': 'float 6s ease-in-out infinite',
+  			'pulse-soft': 'pulse-soft 4s ease-in-out infinite',
+  			'shimmer': 'shimmer 2s linear infinite',
+  			'slide-up': 'slide-up 0.5s cubic-bezier(0.16, 1, 0.3, 1)',
+  			'slide-in-right': 'slide-in-right 0.4s cubic-bezier(0.16, 1, 0.3, 1)',
+  			'fade-in': 'fade-in 0.4s ease-out',
+  			'scale-in': 'scale-in 0.3s cubic-bezier(0.16, 1, 0.3, 1)',
+  			'glow-pulse': 'glow-pulse 3s ease-in-out infinite'
   		},
   		boxShadow: {
   			'2xs': 'var(--shadow-2xs)',
@@ -92,30 +132,43 @@ export default {
   			md: 'var(--shadow-md)',
   			lg: 'var(--shadow-lg)',
   			xl: 'var(--shadow-xl)',
-  			'2xl': 'var(--shadow-2xl)'
+  			'2xl': 'var(--shadow-2xl)',
+  			'glass': '0 8px 32px 0 rgba(0, 0, 0, 0.36)',
+  			'glass-lg': '0 8px 48px 0 rgba(0, 0, 0, 0.48)',
+  			'glow': '0 0 30px hsl(var(--primary) / 0.4)',
+  			'glow-lg': '0 0 60px hsl(var(--primary) / 0.5)'
   		},
-		fontFamily: {
-			sans: [
-				'Inter',
-				'ui-sans-serif',
-				'system-ui',
-				'-apple-system',
-				'BlinkMacSystemFont',
-				'Segoe UI',
-				'Roboto',
-				'sans-serif'
-			],
-			mono: [
-				'JetBrains Mono',
-				'ui-monospace',
-				'SFMono-Regular',
-				'Menlo',
-				'Monaco',
-				'Consolas',
-				'monospace'
-			]
-		}
-	}
+  		backdropBlur: {
+  			'xs': '2px',
+  		},
+  		fontFamily: {
+  			sans: [
+  				'Inter',
+  				'ui-sans-serif',
+  				'system-ui',
+  				'-apple-system',
+  				'BlinkMacSystemFont',
+  				'Segoe UI',
+  				'Roboto',
+  				'sans-serif'
+  			],
+  			mono: [
+  				'JetBrains Mono',
+  				'ui-monospace',
+  				'SFMono-Regular',
+  				'Menlo',
+  				'Monaco',
+  				'Consolas',
+  				'monospace'
+  			],
+  			display: [
+  				'Inter',
+  				'system-ui',
+  				'sans-serif'
+  			]
+  		}
+  	}
   },
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
   plugins: [require("tailwindcss-animate")],
 } satisfies Config;
