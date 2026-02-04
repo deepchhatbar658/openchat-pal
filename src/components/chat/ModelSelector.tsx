@@ -7,6 +7,9 @@ import {
 } from "@/components/ui/select";
 import { ChevronDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Input } from "@/components/ui/input";
+import { useMemo, useState } from "react";
+import { getModelMeta } from "@/constants/models";
 
 interface ModelSelectorProps {
   selectedModel: string;
@@ -19,23 +22,50 @@ export function ModelSelector({
   onModelChange,
   models,
 }: ModelSelectorProps) {
-  const getModelDisplayName = (model: string) => {
-    const parts = model.split("/");
-    if (parts.length > 1) {
-      return parts[1].replace(":free", "").split("-").slice(0, 2).join("-");
+  const [searchQuery, setSearchQuery] = useState("");
+
+  const formatContextLength = (length?: number) => {
+    if (!length) return null;
+    if (length >= 1000) {
+      const rounded = Math.round(length / 1000);
+      return `${rounded}k`;
     }
-    return model;
+    return `${length}`;
   };
 
-  const getModelProvider = (model: string) => {
-    const parts = model.split("/");
-    const provider = parts[0] || "Unknown";
-    // Capitalize first letter
-    return provider.charAt(0).toUpperCase() + provider.slice(1);
+  const formatPricing = (pricing?: { inputPer1kUsd?: number; outputPer1kUsd?: number }) => {
+    if (!pricing) return null;
+    const { inputPer1kUsd, outputPer1kUsd } = pricing;
+    if (inputPer1kUsd === undefined && outputPer1kUsd === undefined) return null;
+    const inputLabel =
+      inputPer1kUsd !== undefined ? `$${inputPer1kUsd.toFixed(4)}/1k in` : null;
+    const outputLabel =
+      outputPer1kUsd !== undefined ? `$${outputPer1kUsd.toFixed(4)}/1k out` : null;
+    return [inputLabel, outputLabel].filter(Boolean).join(" • ");
+  };
+
+  const filteredModels = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return models;
+    return models.filter((model) => {
+      const meta = getModelMeta(model);
+      const tagString = (meta.tags ?? []).join(" ");
+      return (
+        meta.id.toLowerCase().includes(query) ||
+        meta.displayName.toLowerCase().includes(query) ||
+        meta.provider.toLowerCase().includes(query) ||
+        tagString.toLowerCase().includes(query)
+      );
+    });
+  }, [models, searchQuery]);
+
+  const handleModelChange = (model: string) => {
+    onModelChange(model);
+    setSearchQuery("");
   };
 
   return (
-    <Select value={selectedModel} onValueChange={onModelChange}>
+    <Select value={selectedModel} onValueChange={handleModelChange}>
       <SelectTrigger
         className={cn(
           "w-[120px] sm:w-[180px] h-8 sm:h-9",
@@ -57,14 +87,36 @@ export function ModelSelector({
       <SelectContent
         className={cn(
           "glass border-border/30 z-50",
-          "max-h-[350px] min-w-[240px]",
+          "max-h-[380px] min-w-[260px]",
           "rounded-xl overflow-hidden",
         )}
       >
-        <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
-          Select Model
+        <div className="px-3 pt-3 pb-2 space-y-2">
+          <div className="text-[10px] font-semibold text-muted-foreground/60 uppercase tracking-wider">
+            Select Model
+          </div>
+          <Input
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search models..."
+            className="h-8 text-xs rounded-lg glass-input border-border/30"
+            autoFocus
+          />
+          <div className="text-[10px] text-muted-foreground/50">
+            {filteredModels.length} result
+            {filteredModels.length === 1 ? "" : "s"}
+          </div>
         </div>
-        {models.map((model) => (
+        {filteredModels.length === 0 && (
+          <div className="px-3 pb-3 text-xs text-muted-foreground/60">
+            No models found. Try a different search.
+          </div>
+        )}
+        {filteredModels.map((model) => {
+          const meta = getModelMeta(model);
+          const contextLabel = formatContextLength(meta.contextLength);
+          const pricingLabel = formatPricing(meta.pricing);
+          return (
           <SelectItem
             key={model}
             value={model}
@@ -74,16 +126,34 @@ export function ModelSelector({
               "transition-colors duration-150",
             )}
           >
-            <div className="flex flex-col py-0.5">
-              <span className="font-medium text-foreground">
-                {getModelDisplayName(model)}
-              </span>
-              <span className="text-[11px] text-muted-foreground/60">
-                {getModelProvider(model)}
-              </span>
+            <div className="flex items-center justify-between gap-3 py-0.5">
+              <div className="flex flex-col min-w-0">
+                <span className="font-medium text-foreground truncate">
+                  {meta.displayName}
+                </span>
+                <span className="text-[11px] text-muted-foreground/60">
+                  {meta.provider} • {meta.isFree ? "Free" : "Paid"}
+                </span>
+                {(contextLabel || pricingLabel) && (
+                  <span className="text-[10px] text-muted-foreground/45">
+                    {contextLabel ? `Context: ${contextLabel}` : null}
+                    {contextLabel && pricingLabel ? " • " : null}
+                    {pricingLabel ? `Pricing: ${pricingLabel}` : null}
+                  </span>
+                )}
+                <span className="text-[10px] text-muted-foreground/40 truncate">
+                  {meta.id}
+                </span>
+              </div>
+              {meta.isFree && (
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300">
+                  Free
+                </span>
+              )}
             </div>
           </SelectItem>
-        ))}
+        );
+        })}
       </SelectContent>
     </Select>
   );

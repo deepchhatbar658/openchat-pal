@@ -18,6 +18,8 @@ import {
   Cpu,
   Palette,
   Check,
+  Download,
+  Upload,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +36,12 @@ interface SettingsModalProps {
   currentTheme: ThemeId;
   onSetTheme: (theme: ThemeId) => void;
   themes: typeof THEMES;
+  onExportJson: () => void;
+  onExportMarkdown: () => void;
+  onImportJson: (payload: unknown) => number;
+  canExport?: boolean;
+  costPer1k?: number | null;
+  onSetCostPer1k: (value: number | null) => void;
 }
 
 const themeDescriptions: Record<ThemeId, string> = {
@@ -54,18 +62,77 @@ export function SettingsModal({
   currentTheme,
   onSetTheme,
   themes,
+  onExportJson,
+  onExportMarkdown,
+  onImportJson,
+  canExport = true,
+  costPer1k = null,
+  onSetCostPer1k,
 }: SettingsModalProps) {
   const [promptValue, setPromptValue] = useState(systemPrompt);
   const [newModelInput, setNewModelInput] = useState("");
+  const [importStatus, setImportStatus] = useState<string | null>(null);
+  const [costInput, setCostInput] = useState(
+    costPer1k !== null && costPer1k !== undefined ? String(costPer1k) : "",
+  );
 
   useEffect(() => {
     setPromptValue(systemPrompt);
   }, [systemPrompt, isOpen]);
 
+  useEffect(() => {
+    if (!isOpen) {
+      setImportStatus(null);
+    }
+  }, [isOpen]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    setCostInput(
+      costPer1k !== null && costPer1k !== undefined ? String(costPer1k) : "",
+    );
+  }, [costPer1k, isOpen]);
+
   const handleAddModel = () => {
     if (newModelInput.trim()) {
       onAddModel(newModelInput.trim());
       setNewModelInput("");
+    }
+  };
+
+  const handleCostChange = (value: string) => {
+    setCostInput(value);
+  };
+
+  const applyCostInput = () => {
+    const trimmed = costInput.trim();
+    if (!trimmed) {
+      onSetCostPer1k(null);
+      return;
+    }
+    const parsed = Number(trimmed);
+    if (!Number.isNaN(parsed) && parsed >= 0) {
+      onSetCostPer1k(parsed);
+    }
+  };
+
+  const handleImportFile = async (file: File) => {
+    setImportStatus(null);
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text);
+      const count = onImportJson(parsed);
+      setImportStatus(
+        count > 0
+          ? `Imported ${count} chat${count === 1 ? "" : "s"}.`
+          : "No chats found to import.",
+      );
+    } catch (error) {
+      setImportStatus(
+        error instanceof Error
+          ? error.message
+          : "Failed to import file.",
+      );
     }
   };
 
@@ -86,7 +153,7 @@ export function SettingsModal({
           defaultValue="persona"
           className="flex-1 flex flex-col min-h-0 px-6 pb-6"
         >
-          <TabsList className="grid w-full grid-cols-3 glass-subtle p-1 rounded-xl mt-4 h-11">
+          <TabsList className="grid w-full grid-cols-4 glass-subtle p-1 rounded-xl mt-4 h-11">
             <TabsTrigger
               value="persona"
               className="rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none transition-all text-sm"
@@ -107,6 +174,13 @@ export function SettingsModal({
             >
               <Palette className="h-4 w-4 mr-2" />
               Theme
+            </TabsTrigger>
+            <TabsTrigger
+              value="data"
+              className="rounded-lg data-[state=active]:bg-primary/10 data-[state=active]:text-primary data-[state=active]:shadow-none transition-all text-sm"
+            >
+              <Download className="h-4 w-4 mr-2" />
+              Data
             </TabsTrigger>
           </TabsList>
 
@@ -244,6 +318,115 @@ export function SettingsModal({
                   </span>
                 </button>
               ))}
+            </div>
+          </TabsContent>
+
+          {/* DATA TAB */}
+          <TabsContent value="data" className="flex-1 pt-4 overflow-y-auto">
+            <div className="space-y-6">
+              <div className="glass-subtle rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
+                  Export current chat
+                </h3>
+                <p className="text-xs text-muted-foreground/70 mb-3">
+                  Download your current conversation as JSON or Markdown.
+                </p>
+                <div className="flex gap-2">
+                  <Button
+                    onClick={onExportJson}
+                    disabled={!canExport}
+                    className="rounded-xl bg-gradient-primary text-primary-foreground hover:opacity-90"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export JSON
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    onClick={onExportMarkdown}
+                    disabled={!canExport}
+                    className="rounded-xl hover:bg-muted/50"
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Markdown
+                  </Button>
+                </div>
+              </div>
+
+              <div className="glass-subtle rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
+                  Cost estimate
+                </h3>
+                <p className="text-xs text-muted-foreground/70 mb-3">
+                  Optional: set a default price per 1K tokens to estimate costs for paid models.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="number"
+                    inputMode="decimal"
+                    step="0.0001"
+                    min="0"
+                    placeholder="0.0025"
+                    value={costInput}
+                    onChange={(e) => handleCostChange(e.target.value)}
+                    onBlur={applyCostInput}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        applyCostInput();
+                      }
+                    }}
+                    className="text-xs h-10 rounded-xl"
+                  />
+                  <Button
+                    variant="ghost"
+                    className="h-10 rounded-xl hover:bg-muted/50"
+                    onClick={() => {
+                      handleCostChange("");
+                      onSetCostPer1k(null);
+                    }}
+                  >
+                    Clear
+                  </Button>
+                </div>
+                <p className="mt-2 text-[11px] text-muted-foreground/60">
+                  Free models display $0.00 automatically.
+                </p>
+              </div>
+
+              <div className="glass-subtle rounded-xl p-4">
+                <h3 className="text-sm font-semibold text-foreground mb-2">
+                  Import chats
+                </h3>
+                <p className="text-xs text-muted-foreground/70 mb-3">
+                  Import a previously exported JSON file. Chats will be added as new sessions.
+                </p>
+                <div className="flex items-center gap-2">
+                  <Input
+                    type="file"
+                    accept="application/json"
+                    className="text-xs h-10 rounded-xl"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      handleImportFile(file);
+                      e.currentTarget.value = "";
+                    }}
+                  />
+                  <Button
+                    variant="ghost"
+                    className="h-10 rounded-xl hover:bg-muted/50"
+                    onClick={() => setImportStatus(null)}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Clear
+                  </Button>
+                </div>
+                {importStatus && (
+                  <p className="mt-2 text-[11px] text-muted-foreground/80">
+                    {importStatus}
+                  </p>
+                )}
+              </div>
             </div>
           </TabsContent>
         </Tabs>

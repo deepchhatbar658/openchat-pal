@@ -1,13 +1,18 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { Message } from "@/types/chat";
 import { MessageBubble } from "./MessageBubble";
 import { TypingIndicator } from "./TypingIndicator";
-import { Sparkles, Zap, Code, Lightbulb, ArrowRight } from "lucide-react";
+import { Sparkles, Zap, Code, Lightbulb, ArrowRight, ArrowDown } from "lucide-react";
 
 interface ChatWindowProps {
   messages: Message[];
   isLoading: boolean;
   onSuggestionClick?: (text: string) => void;
+  onEditLast?: () => void;
+  onRegenerateLast?: () => void;
+  onQuoteMessage?: (message: Message, mode: "inline" | "block") => void;
+  onReplyMessage?: (message: Message) => void;
+  costPer1k?: number | null;
 }
 
 const suggestions = [
@@ -41,15 +46,57 @@ export function ChatWindow({
   messages,
   isLoading,
   onSuggestionClick,
+  onEditLast,
+  onRegenerateLast,
+  onQuoteMessage,
+  onReplyMessage,
+  costPer1k,
 }: ChatWindowProps) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const [isNearBottom, setIsNearBottom] = useState(true);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+
+  const lastUserMessage = [...messages]
+    .reverse()
+    .find((message) => message.role === "user");
+  const lastResponseMessage = [...messages]
+    .reverse()
+    .find((message) => message.role !== "user");
+
+  const checkIsNearBottom = useCallback(() => {
+    const el = containerRef.current;
+    if (!el) return;
+    const threshold = 140;
+    const distanceFromBottom = el.scrollHeight - el.scrollTop - el.clientHeight;
+    setIsNearBottom(distanceFromBottom <= threshold);
+  }, []);
 
   useEffect(() => {
-    if (bottomRef.current && isLoading) {
-      bottomRef.current.scrollIntoView({ behavior: "smooth" });
+    const el = containerRef.current;
+    if (!el) return;
+    checkIsNearBottom();
+
+    const handleScroll = () => {
+      checkIsNearBottom();
+    };
+
+    el.addEventListener("scroll", handleScroll, { passive: true });
+    return () => {
+      el.removeEventListener("scroll", handleScroll);
+    };
+  }, [checkIsNearBottom]);
+
+  useEffect(() => {
+    if (!isNearBottom) return;
+    if (bottomRef.current) {
+      bottomRef.current.scrollIntoView({ behavior: isLoading ? "smooth" : "auto" });
     }
-  }, [messages, isLoading]);
+  }, [messages, isLoading, isNearBottom]);
+
+  useEffect(() => {
+    setShowScrollButton(!isNearBottom && messages.length > 0);
+  }, [isNearBottom, messages.length]);
 
   if (messages.length === 0 && !isLoading) {
     return (
@@ -152,29 +199,69 @@ export function ChatWindow({
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-y-auto scroll-smooth">
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
-        {messages.map((message, index) => (
-          <MessageBubble
-            key={message.id}
-            message={message}
-            index={index}
-            isStreaming={
+    <div className="flex-1 relative">
+      <div
+        ref={containerRef}
+        className="absolute inset-0 overflow-y-auto scroll-smooth"
+      >
+        <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 sm:py-8 space-y-6">
+          {messages.map((message, index) => {
+            const isStreamingMessage =
               isLoading &&
               index === messages.length - 1 &&
-              message.role === "assistant"
-            }
-          />
-        ))}
+              message.role === "assistant";
 
-        {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
-          <div className="animate-fade-in">
-            <TypingIndicator />
-          </div>
-        )}
+            return (
+              <MessageBubble
+                key={message.id}
+                message={message}
+                index={index}
+                isStreaming={isStreamingMessage}
+                canEdit={
+                  !isLoading &&
+                  !!onEditLast &&
+                  !!lastUserMessage &&
+                  lastUserMessage.id === message.id
+                }
+                canRegenerate={
+                  !isLoading &&
+                  !!onRegenerateLast &&
+                  !!lastResponseMessage &&
+                  lastResponseMessage.id === message.id &&
+                  message.role !== "user"
+                }
+                canQuote={!isLoading && !isStreamingMessage && !!onQuoteMessage}
+                canReply={!isLoading && !isStreamingMessage && !!onReplyMessage}
+                onEdit={onEditLast}
+                onRegenerate={onRegenerateLast}
+                onQuote={(mode) => onQuoteMessage?.(message, mode)}
+                onReply={() => onReplyMessage?.(message)}
+                costPer1k={costPer1k}
+              />
+            );
+          })}
 
-        <div ref={bottomRef} className="h-4" />
+          {isLoading && messages[messages.length - 1]?.role !== "assistant" && (
+            <div className="animate-fade-in">
+              <TypingIndicator />
+            </div>
+          )}
+
+          <div ref={bottomRef} className="h-4" />
+        </div>
       </div>
+
+      {showScrollButton && (
+        <button
+          onClick={() =>
+            bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+          }
+          className="absolute bottom-4 right-4 h-10 w-10 rounded-full bg-gradient-primary text-primary-foreground shadow-glow-subtle hover:shadow-glow transition-all duration-200 flex items-center justify-center"
+          title="Scroll to bottom"
+        >
+          <ArrowDown className="h-4 w-4" />
+        </button>
+      )}
     </div>
   );
 }

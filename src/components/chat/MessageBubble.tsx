@@ -1,6 +1,22 @@
 import { Message } from "@/types/chat";
 import { cn } from "@/lib/utils";
-import { User, Bot, AlertCircle, Copy, Check, RotateCcw } from "lucide-react";
+import {
+  User,
+  Bot,
+  AlertCircle,
+  Copy,
+  Check,
+  RotateCcw,
+  Pencil,
+  Quote,
+  CornerUpLeft,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useState, useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -11,12 +27,30 @@ interface MessageBubbleProps {
   message: Message;
   index?: number;
   isStreaming?: boolean;
+  canEdit?: boolean;
+  canRegenerate?: boolean;
+  canQuote?: boolean;
+  canReply?: boolean;
+  onEdit?: () => void;
+  onRegenerate?: () => void;
+  onQuote?: (mode: "inline" | "block") => void;
+  onReply?: () => void;
+  costPer1k?: number | null;
 }
 
 export function MessageBubble({
   message,
   index = 0,
   isStreaming = false,
+  canEdit = false,
+  canRegenerate = false,
+  canQuote = false,
+  canReply = false,
+  onEdit,
+  onRegenerate,
+  onQuote,
+  onReply,
+  costPer1k = null,
 }: MessageBubbleProps) {
   const isUser = message.role === "user";
   const isError = message.role === "error";
@@ -34,6 +68,69 @@ export function MessageBubble({
       minute: "2-digit",
     });
   }, [message.timestamp]);
+
+  const usage = message.usage;
+  const totalTokens =
+    usage?.totalTokens ??
+    (usage?.promptTokens !== undefined || usage?.completionTokens !== undefined
+      ? (usage?.promptTokens ?? 0) + (usage?.completionTokens ?? 0)
+      : undefined);
+
+  const isFreeModel = message.model?.includes(":free") ?? false;
+  const hasCostInput = typeof costPer1k === "number" && costPer1k >= 0;
+
+  const formatUsd = (value: number) => {
+    const fixed = value < 0.01 ? value.toFixed(4) : value.toFixed(2);
+    return `$${fixed}`;
+  };
+
+  const costFromApi =
+    typeof message.costUsd === "number" ? message.costUsd : undefined;
+  const estimatedCost =
+    costFromApi === undefined &&
+    !isFreeModel &&
+    hasCostInput &&
+    totalTokens !== undefined
+      ? (totalTokens / 1000) * (costPer1k as number)
+      : undefined;
+
+  const costLabel =
+    costFromApi !== undefined
+      ? formatUsd(costFromApi)
+      : isFreeModel
+        ? "$0.00"
+        : estimatedCost !== undefined
+          ? `~${formatUsd(estimatedCost)}`
+          : undefined;
+
+  const tokenLabel = totalTokens !== undefined
+    ? `${usage?.estimated ? "~" : ""}${totalTokens} tok`
+    : undefined;
+
+  const breakdownLabel =
+    usage?.promptTokens !== undefined || usage?.completionTokens !== undefined
+      ? `(${usage?.promptTokens ?? 0} in / ${usage?.completionTokens ?? 0} out)`
+      : undefined;
+
+  const tokenPart = tokenLabel
+    ? `Tokens: ${tokenLabel}${breakdownLabel ? ` ${breakdownLabel}` : ""}`
+    : null;
+
+  const metaLabel =
+    !isUser && (tokenPart || costLabel)
+      ? [tokenPart, costLabel ? `Cost: ${costLabel}` : null]
+          .filter(Boolean)
+          .join(" • ")
+      : null;
+
+  const actionBase = cn(
+    "inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[10px] font-medium transition-colors",
+    isUser
+      ? "text-primary-foreground/70 hover:text-primary-foreground hover:bg-white/10"
+      : "text-muted-foreground/70 hover:text-foreground hover:bg-muted/40",
+  );
+
+  const copyLabel = isUser ? "Copy prompt" : isError ? "Copy error" : "Copy response";
 
   return (
     <div
@@ -298,16 +395,84 @@ export function MessageBubble({
           </ReactMarkdown>
         </div>
 
-        {/* Timestamp */}
+        {/* Actions + Timestamp */}
         <div
           className={cn(
-            "mt-2 text-[10px] sm:text-[11px] select-none font-medium tracking-wide",
-            isUser
-              ? "text-right text-primary-foreground/50"
-              : "text-left text-muted-foreground/50",
+            "mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-[10px] sm:text-[11px] select-none font-medium tracking-wide",
+            isUser ? "justify-end" : "justify-start",
           )}
         >
-          {formattedTime}
+          {canEdit && onEdit && (
+            <button className={actionBase} onClick={onEdit} title="Edit last message">
+              <Pencil className="h-3 w-3" />
+              <span>Edit</span>
+            </button>
+          )}
+          {canRegenerate && onRegenerate && (
+            <button
+              className={actionBase}
+              onClick={onRegenerate}
+              title="Regenerate last response"
+            >
+              <RotateCcw className="h-3 w-3" />
+              <span>Regenerate</span>
+            </button>
+          )}
+          <button
+            className={actionBase}
+            onClick={() => handleCopy(message.content, "msg-" + message.id)}
+            title="Copy message"
+          >
+            <Copy className="h-3 w-3" />
+            <span>{copyLabel}</span>
+          </button>
+          {canQuote && onQuote && (
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className={actionBase} title="Quote message" type="button">
+                  <Quote className="h-3 w-3" />
+                  <span>Quote</span>
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align={isUser ? "end" : "start"}
+                className="glass border-border/30"
+              >
+                <DropdownMenuItem onClick={() => onQuote("inline")}>
+                  Inline quote
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={() => onQuote("block")}>
+                  Blockquote
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
+          {canReply && onReply && (
+            <button className={actionBase} onClick={onReply} title="Reply to message">
+              <CornerUpLeft className="h-3 w-3" />
+              <span>Reply</span>
+            </button>
+          )}
+          {metaLabel && (
+            <span
+              className={cn(
+                isUser
+                  ? "text-primary-foreground/50"
+                  : "text-muted-foreground/60",
+              )}
+            >
+              {metaLabel}
+            </span>
+          )}
+          <span
+            className={cn(
+              isUser
+                ? "text-primary-foreground/50"
+                : "text-muted-foreground/50",
+            )}
+          >
+            {formattedTime}
+          </span>
         </div>
       </div>
     </div>

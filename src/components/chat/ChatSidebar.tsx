@@ -34,6 +34,17 @@ export function ChatSidebar({
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
   };
 
+  const formatTitle = (title: string) => {
+    const words = title.trim().split(/\s+/).filter(Boolean);
+    const limitedWords = words.slice(0, 4).join(" ");
+    let normalizedTitle = limitedWords || "New Chat";
+    if (words.length > 4) normalizedTitle += "...";
+    if (normalizedTitle.length > 36) {
+      normalizedTitle = normalizedTitle.slice(0, 33) + "...";
+    }
+    return normalizedTitle;
+  };
+
   return (
     <div
       className={cn(
@@ -109,8 +120,9 @@ export function ChatSidebar({
                       ? "text-foreground"
                       : "text-muted-foreground group-hover:text-foreground",
                   )}
+                  title={session.title}
                 >
-                  {session.title || "New Chat"}
+                  {formatTitle(session.title || "New Chat")}
                 </p>
                 <p className="text-[11px] text-muted-foreground/60">
                   {formatDate(session.createdAt)}
@@ -124,9 +136,9 @@ export function ChatSidebar({
                 }}
                 className={cn(
                   "p-1.5 rounded-lg flex-shrink-0",
-                  "text-muted-foreground/50 hover:text-destructive",
-                  "hover:bg-destructive/10",
-                  "opacity-0 group-hover:opacity-100",
+                  "bg-muted/20 text-muted-foreground",
+                  "hover:text-destructive hover:bg-destructive/15",
+                  "opacity-100",
                   "transition-all duration-200",
                 )}
                 title="Delete chat"

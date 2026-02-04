@@ -6,18 +6,42 @@ import { cn } from "@/lib/utils";
 
 interface ChatInputProps {
   onSend: (message: string) => void;
+  onStop: () => void;
   disabled?: boolean;
+  isLoading?: boolean;
+  value?: string;
+  onChange?: (value: string) => void;
+  inputRef?: React.RefObject<HTMLTextAreaElement>;
 }
 
-export function ChatInput({ onSend, disabled }: ChatInputProps) {
+export function ChatInput({
+  onSend,
+  onStop,
+  disabled,
+  isLoading,
+  value,
+  onChange,
+  inputRef,
+}: ChatInputProps) {
   const [message, setMessage] = useState("");
   const [isFocused, setIsFocused] = useState(false);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const internalRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = inputRef ?? internalRef;
+
+  const isControlled = value !== undefined && onChange !== undefined;
+  const messageValue = isControlled ? value : message;
+  const setMessageValue = (nextValue: string) => {
+    if (isControlled && onChange) {
+      onChange(nextValue);
+    } else {
+      setMessage(nextValue);
+    }
+  };
 
   const handleSubmit = () => {
-    if (message.trim() && !disabled) {
-      onSend(message);
-      setMessage("");
+    if (messageValue.trim() && !disabled) {
+      onSend(messageValue);
+      setMessageValue("");
       // Reset textarea height
       if (textareaRef.current) {
         textareaRef.current.style.height = "auto";
@@ -39,9 +63,9 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
       const newHeight = Math.min(textareaRef.current.scrollHeight, 200);
       textareaRef.current.style.height = `${newHeight}px`;
     }
-  }, [message]);
+  }, [messageValue, textareaRef]);
 
-  const hasContent = message.trim().length > 0;
+  const hasContent = messageValue.trim().length > 0;
 
   return (
     <div
@@ -65,8 +89,8 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
             <div className="flex-1 relative min-w-0">
               <Textarea
                 ref={textareaRef}
-                value={message}
-                onChange={(e) => setMessage(e.target.value)}
+                value={messageValue}
+                onChange={(e) => setMessageValue(e.target.value)}
                 onKeyDown={handleKeyDown}
                 onFocus={() => setIsFocused(true)}
                 onBlur={() => setIsFocused(false)}
@@ -85,26 +109,42 @@ export function ChatInput({ onSend, disabled }: ChatInputProps) {
               />
             </div>
 
-            {/* Send button */}
-            <Button
-              onClick={handleSubmit}
-              disabled={!hasContent || disabled}
-              size="icon"
-              className={cn(
-                "h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex-shrink-0",
-                "transition-all duration-300 active:scale-95",
-                hasContent && !disabled
-                  ? "bg-gradient-primary text-primary-foreground shadow-glow-subtle hover:shadow-glow hover:scale-105"
-                  : "bg-muted/50 text-muted-foreground/50 cursor-not-allowed",
-              )}
-            >
-              <Send
+            {/* Send / Stop button */}
+            {isLoading ? (
+              <Button
+                onClick={onStop}
+                size="icon"
                 className={cn(
-                  "h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-300",
-                  hasContent && "translate-x-0.5 -translate-y-0.5",
+                  "h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex-shrink-0",
+                  "transition-all duration-300 active:scale-95",
+                  "bg-destructive/15 text-destructive hover:bg-destructive/25",
                 )}
-              />
-            </Button>
+                title="Stop generating"
+              >
+                <div className="h-4 w-4 sm:h-5 sm:w-5 rounded-sm bg-current" />
+              </Button>
+            ) : (
+              <Button
+                onClick={handleSubmit}
+                disabled={!hasContent || disabled}
+                size="icon"
+                className={cn(
+                  "h-10 w-10 sm:h-11 sm:w-11 rounded-xl flex-shrink-0",
+                  "transition-all duration-300 active:scale-95",
+                  hasContent && !disabled
+                    ? "bg-gradient-primary text-primary-foreground shadow-glow-subtle hover:shadow-glow hover:scale-105"
+                    : "bg-muted/50 text-muted-foreground/50 cursor-not-allowed",
+                )}
+                title="Send"
+              >
+                <Send
+                  className={cn(
+                    "h-4 w-4 sm:h-5 sm:w-5 transition-transform duration-300",
+                    hasContent && "translate-x-0.5 -translate-y-0.5",
+                  )}
+                />
+              </Button>
+            )}
           </div>
         </div>
 

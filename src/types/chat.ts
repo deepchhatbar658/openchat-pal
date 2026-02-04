@@ -3,6 +3,16 @@ export interface Message {
   role: 'user' | 'assistant' | 'error';
   content: string;
   timestamp: number;
+  model?: string;
+  usage?: MessageUsage;
+  costUsd?: number;
+}
+
+export interface MessageUsage {
+  promptTokens?: number;
+  completionTokens?: number;
+  totalTokens?: number;
+  estimated?: boolean;
 }
 
 export interface ChatState {
